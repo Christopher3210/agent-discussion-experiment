@@ -269,7 +269,7 @@ class DebateLogger:
 
         with open(filepath, 'w', encoding='utf-8') as f:
             # Header
-            f.write(f"# AI Philosophy Salon - Debate Log\n\n")
+            f.write(f"# Multi-Agent Discussion Log\n\n")
             f.write(f"**Session ID**: {self.session_id}\n\n")
             f.write(f"**Topic**: {self.topic}\n\n")
             f.write(f"**Participants**: {', '.join(self.participants)}\n\n")
@@ -292,7 +292,7 @@ class DebateLogger:
             f.write(f"- User Interrupts: {self.stats['interrupts']}\n\n")
 
             f.write(f"### Speech Distribution\n\n")
-            f.write(f"| Philosopher | Regular Speeches | Q&A Responses | Total |\n")
+            f.write(f"| Agent | Regular Speeches | Q&A Responses | Total |\n")
             f.write(f"|-------------|------------------|---------------|-------|\n")
             for name in self.participants:
                 regular = self.stats['speech_counts'][name]

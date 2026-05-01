@@ -1,70 +1,16 @@
-# ---- Python ----
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-*.pyi
 *.egg-info/
-
-# Python virtual environments
 .env
 .venv/
 venv/
-venv310/
-
-# ---- VSCode ----
 .vscode/
-.history/
-*.code-workspace
-
-# ---- LM Studio ----
-lmstudio-cache/
-lmstudio-temp/
-*.gguf
-*.bin
-
-# ---- Backend outputs ----
-Backend/tts_output/
-Backend/logs/
+.idea/
+results/
+figures/
+logs/
 *.mp3
-
-# ---- Unity (if Unity folders exist) ----
-Library/
-Temp/
-Obj/
-Logs/
-UserSettings/
-MemoryCaptures/
-Build/
-Builds/
-Assets/Plugins/Editor/
-
-# Unity project files
-*.csproj
-*.unityproj
-*.sln
-*.user
-*.pidb
-*.booproj
-*.svd
-*.pdb
-*.mdb
-
-# ---- System junk ----
+*.wav
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# ---- Backups ----
-*.bak
-*.tmp
-*.old
-
-# ---- python / pytest ----
-.cache/
-*.pytest_cache/
-
-# ---- Git keepers (preserve empty folders) ----
-!.gitkeep
-Backend/dist/
-Backend/build/

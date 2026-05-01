@@ -184,4 +184,4 @@ class StanceAnalyzer:
             elif conviviality <= 0.3:
                 return "Take a contrarian stance. Challenge the underlying assumptions and provoke debate."
             else:
-                return "Provide your distinct philosophical perspective on this topic."
+                return "Provide your distinct professional perspective on this topic."
