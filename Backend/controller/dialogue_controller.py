@@ -61,6 +61,14 @@ class DialogueController:
                     f"challenge it, qualify it, or build on it with your own expertise.\n"
                 )
 
+            question_instruction = ""
+            if random.random() < 0.35:
+                other_names = [a.name for a in self.agents if a.name != speaker.name]
+                question_instruction = (
+                    f"- End your response with a direct question to another participant "
+                    f"({', '.join(other_names)}) to push the discussion deeper.\n"
+                )
+
             length_roll = random.random()
             if length_roll < 0.35:
                 length_instruction = "Reply with a single short reaction — under 20 words."
@@ -81,6 +89,7 @@ class DialogueController:
                 f"- {length_instruction}\n"
                 f"- {tone_instruction}\n"
                 f"{engagement_instruction}"
+                f"{question_instruction}"
                 f"- Your response must be shaped by what was just said.\n"
                 f"- Do NOT refer to yourself in third person.\n"
                 f"- Do NOT start with labels like 'Response:' or any prefix.\n"
