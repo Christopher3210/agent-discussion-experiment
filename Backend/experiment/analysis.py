@@ -20,7 +20,10 @@ def analyze_experiment(result_path):
 def _analyze_diversity(data):
     results_by_level = defaultdict(list)
     for session in data["results"]:
-        results_by_level[session["diversity_level"]].append(compute_all_metrics(session))
+        metrics = compute_all_metrics(session)
+        if "llm_judge" in session:
+            metrics.update(session["llm_judge"])
+        results_by_level[session["diversity_level"]].append(metrics)
 
     comparisons = _build_comparisons(results_by_level)
     analysis = {
@@ -41,7 +44,10 @@ def _analyze_diversity(data):
 def _analyze_group_size(data):
     results_by_size = defaultdict(list)
     for session in data["results"]:
-        results_by_size[str(session["group_size"])].append(compute_all_metrics(session))
+        metrics = compute_all_metrics(session)
+        if "llm_judge" in session:
+            metrics.update(session["llm_judge"])
+        results_by_size[str(session["group_size"])].append(metrics)
 
     comparisons = _build_comparisons(results_by_size)
     analysis = {
@@ -65,6 +71,7 @@ def _build_comparisons(results_by_condition):
         "unique_claims", "type_token_ratio", "repetition_rate",
         "cross_reference_rate", "question_rate", "disagreement_rate",
         "speaker_balance", "claim_density", "self_repetition_rate",
+        "argument_depth", "perspective_diversity", "logical_coherence", "engagement_quality",
     ]
     comparisons = {}
     for key in metric_keys:

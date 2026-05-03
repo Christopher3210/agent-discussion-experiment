@@ -10,6 +10,7 @@ from agents.agent_base import Agent
 from agents.agents_manager import AgentsManager
 from llm.cloud_model_manager import CloudModelManager
 from controller.dialogue_controller import DialogueController
+from experiment.llm_judge import judge_session
 
 DIVERSITY_CONFIGS = {
     "low": {
@@ -80,7 +81,10 @@ class ExperimentRunner:
             model_manager=self.model_manager, agents=agents,
             history_window=8, conviviality=conviviality,
         )
-        return await controller.run_dialogue(topic=topic, num_turns=num_turns)
+        result = await controller.run_dialogue(topic=topic, num_turns=num_turns)
+        result["llm_judge"] = judge_session(result, self.model_manager)
+        print(f"    LLM Judge: {result['llm_judge']}")
+        return result
 
     async def run_diversity_experiment(self, num_turns=20, repetitions=3, topics=None, conviviality=0.5):
         topics = topics or TOPICS
