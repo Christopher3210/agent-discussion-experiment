@@ -92,6 +92,7 @@ class DialogueController:
                 f"{question_instruction}"
                 f"- Your response must be shaped by what was just said.\n"
                 f"- Do NOT refer to yourself in third person.\n"
+                f"- Do NOT start with 'As a [role]' or 'As an [role]' — jump straight into your argument.\n"
                 f"- Do NOT start with labels like 'Response:' or any prefix.\n"
             )
 
@@ -168,4 +169,5 @@ class DialogueController:
             reply = reply[len(speaker_name):].strip()
             if reply.startswith(":"):
                 reply = reply[1:].strip()
+        reply = re.sub(r'^As an? \w+,?\s*', '', reply)
         return reply
