@@ -91,6 +91,8 @@ class DialogueController:
                 f"{engagement_instruction}"
                 f"{question_instruction}"
                 f"- Your response must be shaped by what was just said.\n"
+                f"- Do NOT repeat points already made. Introduce a NEW angle, concrete example, or specific counterargument that has not appeared yet.\n"
+                f"- Avoid generic phrases like 'regulation is crucial/essential/important'. Be specific about WHAT should be regulated and HOW.\n"
                 f"- Do NOT refer to yourself in third person.\n"
                 f"- Do NOT start with 'As a [role]' or 'As an [role]' — jump straight into your argument.\n"
                 f"- Do NOT start with labels like 'Response:' or any prefix.\n"
