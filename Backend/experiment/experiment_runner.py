@@ -12,55 +12,10 @@ from llm.cloud_model_manager import CloudModelManager
 from controller.dialogue_controller import DialogueController
 from experiment.llm_judge import judge_session
 
-# Disciplinary classification based on Biglan (1973) taxonomy:
-#   Hard/Soft axis: empirical-quantitative vs interpretive-qualitative
-#   Pure/Applied axis: theory-driven vs practice-driven
-#
-# Hard-Pure:    Physicist, Biologist (natural sciences, empirical laws)
-# Hard-Applied: Engineer (technical problem-solving, design constraints)
-# Soft-Pure:    Ethicist, Sociologist, Psychologist (interpretive, theory-oriented)
-# Soft-Applied: Economist, Political Scientist (policy, institutional design)
-#
-# Low diversity  = agents from the SAME quadrant
-# Medium diversity = agents from ADJACENT quadrants (one axis differs)
-# High diversity = agents from OPPOSITE quadrants (both axes differ)
-
-DISCIPLINE_CATEGORY = {
-    "Physicist":           "hard-pure",
-    "Biologist":           "hard-pure",
-    "Engineer":            "hard-applied",
-    "Ethicist":            "soft-pure",
-    "Sociologist":         "soft-pure",
-    "Psychologist":        "soft-pure",
-    "Economist":           "soft-applied",
-    "Political Scientist": "soft-applied",
-}
-
-DIVERSITY_CONFIGS = {
-    "low": {
-        "description": "Same quadrant (Biglan taxonomy)",
-        "groups": [
-            ["Physicist", "Biologist", "Engineer"],           # hard cluster
-            ["Ethicist", "Sociologist", "Psychologist"],      # soft-pure cluster
-            ["Economist", "Political Scientist", "Engineer"],  # applied cluster
-        ],
-    },
-    "medium": {
-        "description": "Adjacent quadrants (one axis differs)",
-        "groups": [
-            ["Physicist", "Economist", "Biologist"],           # hard-pure + soft-applied
-            ["Engineer", "Psychologist", "Ethicist"],          # hard-applied + soft-pure
-            ["Sociologist", "Economist", "Biologist"],         # soft + hard mix
-        ],
-    },
-    "high": {
-        "description": "Opposite quadrants (both axes differ)",
-        "groups": [
-            ["Physicist", "Ethicist", "Political Scientist"],  # hard-pure + soft-pure + soft-applied
-            ["Engineer", "Sociologist", "Economist"],          # hard-applied + soft-pure + soft-applied
-            ["Biologist", "Psychologist", "Political Scientist"],  # hard-pure + soft-pure + soft-applied
-        ],
-    },
+CONVIVIALITY_LEVELS = {
+    "confrontational": 0.2,
+    "balanced": 0.5,
+    "cooperative": 0.8,
 }
 
 TOPICS = [
@@ -113,48 +68,51 @@ class ExperimentRunner:
         print(f"    LLM Judge: {result['llm_judge']}")
         return result
 
-    async def run_diversity_experiment(self, num_turns=20, repetitions=3, topics=None, conviviality=0.5):
+    async def run_conviviality_experiment(self, num_turns=20, repetitions=5, topics=None, group_size=4):
         topics = topics or TOPICS
         experiment_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         all_results = []
+        all_agent_names = sorted(self.agent_pool.keys())
 
         print(f"\n{'='*60}")
-        print(f"  DIVERSITY EXPERIMENT - {experiment_id}")
-        print(f"  Turns: {num_turns} | Repetitions: {repetitions}")
+        print(f"  CONVIVIALITY EXPERIMENT - {experiment_id}")
+        print(f"  Group size: {group_size} | Turns: {num_turns} | Repetitions: {repetitions}")
         print(f"{'='*60}\n")
 
-        for diversity_level, config in DIVERSITY_CONFIGS.items():
-            print(f"\n--- Diversity: {diversity_level.upper()} ({config['description']}) ---")
-            for group_idx, agent_names in enumerate(config["groups"]):
-                for rep in range(repetitions):
-                    topic = topics[(group_idx * repetitions + rep) % len(topics)]
-                    print(f"\n[{diversity_level}] Group {group_idx+1}, Rep {rep+1}/{repetitions}")
-                    result = await self.run_single(
-                        agent_names=agent_names, topic=topic,
-                        num_turns=num_turns, conviviality=conviviality,
-                    )
-                    result["diversity_level"] = diversity_level
-                    result["group_index"] = group_idx
-                    result["repetition"] = rep
-                    all_results.append(result)
+        for level_name, conv_value in CONVIVIALITY_LEVELS.items():
+            print(f"\n--- Conviviality: {level_name} ({conv_value}) ---")
+            for rep in range(repetitions):
+                selected = random.sample(all_agent_names, group_size)
+                topic = topics[rep % len(topics)]
+                print(f"\n[{level_name}] Rep {rep+1}/{repetitions}: {', '.join(selected)}")
+                result = await self.run_single(
+                    agent_names=selected, topic=topic,
+                    num_turns=num_turns, conviviality=conv_value,
+                )
+                result["conviviality_level"] = level_name
+                result["conviviality_value"] = conv_value
+                result["repetition"] = rep
+                all_results.append(result)
 
         experiment_data = {
             "experiment_id": experiment_id,
-            "experiment_type": "diversity",
+            "experiment_type": "conviviality",
             "config": {
+                "levels": CONVIVIALITY_LEVELS,
+                "group_size": group_size,
                 "num_turns": num_turns, "repetitions": repetitions,
-                "conviviality": conviviality, "topics": topics,
+                "topics": topics,
             },
             "results": all_results,
         }
 
-        output_path = self.output_dir / f"diversity_{experiment_id}.json"
+        output_path = self.output_dir / f"conviviality_{experiment_id}.json"
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(experiment_data, f, indent=2, ensure_ascii=False)
         print(f"\n[Experiment] Results saved to {output_path}")
         return experiment_data
 
-    async def run_group_size_experiment(self, sizes=None, num_turns=20, repetitions=3, topics=None, conviviality=0.5):
+    async def run_group_size_experiment(self, sizes=None, num_turns=20, repetitions=5, topics=None, conviviality=0.5):
         sizes = sizes or [2, 3, 4, 6]
         topics = topics or TOPICS
         experiment_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -195,6 +153,55 @@ class ExperimentRunner:
         }
 
         output_path = self.output_dir / f"group_size_{experiment_id}.json"
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(experiment_data, f, indent=2, ensure_ascii=False)
+        print(f"\n[Experiment] Results saved to {output_path}")
+        return experiment_data
+
+    async def run_combined_experiment(self, sizes=None, num_turns=20, repetitions=5, topics=None):
+        sizes = sizes or [2, 4, 6]
+        topics = topics or TOPICS
+        experiment_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        all_results = []
+        all_agent_names = sorted(self.agent_pool.keys())
+
+        print(f"\n{'='*60}")
+        print(f"  COMBINED EXPERIMENT (Conviviality x Group Size) - {experiment_id}")
+        print(f"  Sizes: {sizes} | Conviviality: {list(CONVIVIALITY_LEVELS.keys())}")
+        print(f"  Turns: {num_turns} | Repetitions: {repetitions}")
+        print(f"{'='*60}\n")
+
+        for level_name, conv_value in CONVIVIALITY_LEVELS.items():
+            for size in sizes:
+                if size > len(all_agent_names):
+                    continue
+                print(f"\n--- {level_name} x size={size} ---")
+                for rep in range(repetitions):
+                    selected = random.sample(all_agent_names, size)
+                    topic = topics[rep % len(topics)]
+                    print(f"\n[{level_name}, n={size}] Rep {rep+1}/{repetitions}: {', '.join(selected)}")
+                    result = await self.run_single(
+                        agent_names=selected, topic=topic,
+                        num_turns=num_turns, conviviality=conv_value,
+                    )
+                    result["conviviality_level"] = level_name
+                    result["conviviality_value"] = conv_value
+                    result["group_size"] = size
+                    result["repetition"] = rep
+                    all_results.append(result)
+
+        experiment_data = {
+            "experiment_id": experiment_id,
+            "experiment_type": "combined",
+            "config": {
+                "levels": CONVIVIALITY_LEVELS, "sizes": sizes,
+                "num_turns": num_turns, "repetitions": repetitions,
+                "topics": topics,
+            },
+            "results": all_results,
+        }
+
+        output_path = self.output_dir / f"combined_{experiment_id}.json"
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(experiment_data, f, indent=2, ensure_ascii=False)
         print(f"\n[Experiment] Results saved to {output_path}")

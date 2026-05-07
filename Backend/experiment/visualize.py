@@ -12,9 +12,8 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 
-def plot_diversity_comparison(result_path, output_dir="figures"):
+def plot_conviviality_comparison(result_path, output_dir="figures"):
     if not HAS_MATPLOTLIB:
-        print("matplotlib required for visualisation")
         return
 
     with open(result_path, "r", encoding="utf-8") as f:
@@ -25,18 +24,21 @@ def plot_diversity_comparison(result_path, output_dir="figures"):
 
     results_by_level = defaultdict(list)
     for session in data["results"]:
-        results_by_level[session["diversity_level"]].append(compute_all_metrics(session))
+        metrics = compute_all_metrics(session)
+        if "llm_judge" in session:
+            metrics.update(session["llm_judge"])
+        results_by_level[session["conviviality_level"]].append(metrics)
 
-    levels = ["low", "medium", "high"]
-    colors = {"low": "#4CAF50", "medium": "#FF9800", "high": "#F44336"}
+    levels = ["confrontational", "balanced", "cooperative"]
+    colors = {"confrontational": "#F44336", "balanced": "#FF9800", "cooperative": "#4CAF50"}
 
     metric_configs = [
         ("unique_claims", "Unique Claims", "Count"),
         ("type_token_ratio", "Lexical Diversity (TTR)", "Ratio"),
         ("repetition_rate", "Repetition Rate", "Rate"),
-        ("cross_reference_rate", "Cross-Reference Rate", "Rate"),
-        ("claim_density", "Claim Density", "Claims per Turn"),
         ("disagreement_rate", "Disagreement Rate", "Rate"),
+        ("argument_depth", "Argument Depth (LLM)", "Score (1-10)"),
+        ("engagement_quality", "Engagement Quality (LLM)", "Score (1-10)"),
     ]
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
@@ -58,17 +60,16 @@ def plot_diversity_comparison(result_path, output_dir="figures"):
             ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
                     f'{mean:.3f}', ha='center', va='bottom', fontsize=8)
 
-    plt.suptitle("Effect of Agent Perspective Diversity on Discussion Quality",
+    plt.suptitle("Effect of Debate Intensity on Discussion Quality",
                  fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(out / "diversity_comparison.png", dpi=150, bbox_inches='tight')
+    plt.savefig(out / "conviviality_comparison.png", dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"Saved: {out / 'diversity_comparison.png'}")
+    print(f"Saved: {out / 'conviviality_comparison.png'}")
 
 
 def plot_group_size_comparison(result_path, output_dir="figures"):
     if not HAS_MATPLOTLIB:
-        print("matplotlib required for visualisation")
         return
 
     with open(result_path, "r", encoding="utf-8") as f:
@@ -79,7 +80,10 @@ def plot_group_size_comparison(result_path, output_dir="figures"):
 
     results_by_size = defaultdict(list)
     for session in data["results"]:
-        results_by_size[session["group_size"]].append(compute_all_metrics(session))
+        metrics = compute_all_metrics(session)
+        if "llm_judge" in session:
+            metrics.update(session["llm_judge"])
+        results_by_size[session["group_size"]].append(metrics)
 
     sizes = sorted(results_by_size.keys())
 
@@ -88,8 +92,8 @@ def plot_group_size_comparison(result_path, output_dir="figures"):
         ("type_token_ratio", "Lexical Diversity (TTR)", "Ratio"),
         ("repetition_rate", "Repetition Rate", "Rate"),
         ("self_repetition_rate", "Self-Repetition Rate", "Rate"),
-        ("speaker_balance", "Speaker Balance", "Balance"),
-        ("claim_density", "Claim Density", "Claims per Turn"),
+        ("argument_depth", "Argument Depth (LLM)", "Score (1-10)"),
+        ("perspective_diversity", "Perspective Diversity (LLM)", "Score (1-10)"),
     ]
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
@@ -110,12 +114,79 @@ def plot_group_size_comparison(result_path, output_dir="figures"):
         ax.set_xlabel("Number of Agents", fontsize=9)
         ax.set_xticks(sizes)
 
-    plt.suptitle("Effect of Group Size on Multi-Agent Discussion Quality",
+    plt.suptitle("Effect of Group Size on Discussion Quality",
                  fontsize=14, fontweight='bold')
     plt.tight_layout()
     plt.savefig(out / "group_size_comparison.png", dpi=150, bbox_inches='tight')
     plt.close()
     print(f"Saved: {out / 'group_size_comparison.png'}")
+
+
+def plot_combined_heatmap(result_path, output_dir="figures"):
+    if not HAS_MATPLOTLIB:
+        return
+
+    with open(result_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    out = Path(output_dir)
+    out.mkdir(exist_ok=True)
+
+    results = defaultdict(lambda: defaultdict(list))
+    for session in data["results"]:
+        metrics = compute_all_metrics(session)
+        if "llm_judge" in session:
+            metrics.update(session["llm_judge"])
+        conv = session["conviviality_level"]
+        size = session["group_size"]
+        results[conv][size].append(metrics)
+
+    conv_order = ["confrontational", "balanced", "cooperative"]
+    sizes = sorted(set(s["group_size"] for s in data["results"]))
+
+    metric_configs = [
+        ("unique_claims", "Unique Claims"),
+        ("repetition_rate", "Repetition Rate"),
+        ("disagreement_rate", "Disagreement Rate"),
+        ("argument_depth", "Argument Depth (LLM)"),
+        ("perspective_diversity", "Perspective Diversity (LLM)"),
+        ("engagement_quality", "Engagement Quality (LLM)"),
+    ]
+
+    fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+    axes = axes.flatten()
+
+    for idx, (key, title) in enumerate(metric_configs):
+        ax = axes[idx]
+        matrix = []
+        for conv in conv_order:
+            row = []
+            for size in sizes:
+                values = [m[key] for m in results[conv][size] if key in m]
+                row.append(sum(values) / len(values) if values else 0)
+            matrix.append(row)
+
+        im = ax.imshow(matrix, cmap='YlOrRd', aspect='auto')
+        ax.set_xticks(range(len(sizes)))
+        ax.set_xticklabels([str(s) for s in sizes])
+        ax.set_yticks(range(len(conv_order)))
+        ax.set_yticklabels(conv_order)
+        ax.set_xlabel("Group Size")
+        ax.set_ylabel("Conviviality")
+        ax.set_title(title, fontsize=11, fontweight='bold')
+
+        for i in range(len(conv_order)):
+            for j in range(len(sizes)):
+                ax.text(j, i, f'{matrix[i][j]:.2f}', ha='center', va='center', fontsize=9)
+
+        plt.colorbar(im, ax=ax, shrink=0.8)
+
+    plt.suptitle("Conviviality x Group Size Interaction Effects",
+                 fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(out / "combined_heatmap.png", dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"Saved: {out / 'combined_heatmap.png'}")
 
 
 def _std(values):

@@ -6,9 +6,9 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(description="Multi-Agent Discussion Experiment")
-    parser.add_argument("experiment", choices=["diversity", "group_size", "single", "analyze"])
+    parser.add_argument("experiment", choices=["conviviality", "group_size", "combined", "single", "analyze"])
     parser.add_argument("--turns", type=int, default=20)
-    parser.add_argument("--reps", type=int, default=3)
+    parser.add_argument("--reps", type=int, default=5)
     parser.add_argument("--conviviality", type=float, default=0.5)
     parser.add_argument("--topic", type=str, default="Should artificial intelligence be regulated by governments?")
     parser.add_argument("--agents", type=str, nargs="+")
@@ -23,16 +23,18 @@ def main():
             print("Error: --result-file required for analysis")
             sys.exit(1)
         from experiment.analysis import analyze_experiment
-        from experiment.visualize import plot_diversity_comparison, plot_group_size_comparison
+        from experiment.visualize import plot_conviviality_comparison, plot_group_size_comparison, plot_combined_heatmap
         import json
 
         analyze_experiment(args.result_file)
-        with open(args.result_file, "r") as f:
+        with open(args.result_file, "r", encoding="utf-8") as f:
             data = json.load(f)
-        if data["experiment_type"] == "diversity":
-            plot_diversity_comparison(args.result_file)
+        if data["experiment_type"] == "conviviality":
+            plot_conviviality_comparison(args.result_file)
         elif data["experiment_type"] == "group_size":
             plot_group_size_comparison(args.result_file)
+        elif data["experiment_type"] == "combined":
+            plot_combined_heatmap(args.result_file)
         print("\nAnalysis complete.")
         return
 
@@ -53,14 +55,19 @@ def main():
         ))
         print(f"\nSession {result['session_id']} complete. {result['num_turns']} turns.")
 
-    elif args.experiment == "diversity":
-        asyncio.run(runner.run_diversity_experiment(
-            num_turns=args.turns, repetitions=args.reps, conviviality=args.conviviality,
+    elif args.experiment == "conviviality":
+        asyncio.run(runner.run_conviviality_experiment(
+            num_turns=args.turns, repetitions=args.reps,
         ))
 
     elif args.experiment == "group_size":
         asyncio.run(runner.run_group_size_experiment(
-            num_turns=args.turns, repetitions=args.reps, conviviality=args.conviviality,
+            num_turns=args.turns, repetitions=args.reps,
+        ))
+
+    elif args.experiment == "combined":
+        asyncio.run(runner.run_combined_experiment(
+            num_turns=args.turns, repetitions=args.reps,
         ))
 
 

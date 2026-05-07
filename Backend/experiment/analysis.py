@@ -9,60 +9,71 @@ def analyze_experiment(result_path):
     with open(result_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    if data["experiment_type"] == "diversity":
-        return _analyze_diversity(data)
-    elif data["experiment_type"] == "group_size":
-        return _analyze_group_size(data)
+    exp_type = data["experiment_type"]
+    if exp_type == "conviviality":
+        return _analyze_by_key(data, "conviviality_level", "CONVIVIALITY EXPERIMENT")
+    elif exp_type == "group_size":
+        return _analyze_by_key(data, "group_size", "GROUP SIZE EXPERIMENT", sort_as_int=True)
+    elif exp_type == "combined":
+        return _analyze_combined(data)
     else:
-        raise ValueError(f"Unknown experiment type: {data['experiment_type']}")
+        raise ValueError(f"Unknown experiment type: {exp_type}")
 
 
-def _analyze_diversity(data):
-    results_by_level = defaultdict(list)
+def _analyze_by_key(data, key, title, sort_as_int=False):
+    results_by_cond = defaultdict(list)
     for session in data["results"]:
         metrics = compute_all_metrics(session)
         if "llm_judge" in session:
             metrics.update(session["llm_judge"])
-        results_by_level[session["diversity_level"]].append(metrics)
+        results_by_cond[str(session[key])].append(metrics)
 
-    comparisons = _build_comparisons(results_by_level)
+    comparisons = _build_comparisons(results_by_cond)
+
+    if sort_as_int:
+        conditions = sorted(results_by_cond.keys(), key=lambda x: int(x) if x.isdigit() else x)
+    else:
+        conditions = list(results_by_cond.keys())
+
     analysis = {
-        "experiment_type": "diversity",
+        "experiment_type": data["experiment_type"],
         "experiment_id": data["experiment_id"],
         "comparisons": comparisons,
     }
 
-    out_path = Path("results") / f"analysis_diversity_{data['experiment_id']}.json"
+    out_path = Path("results") / f"analysis_{data['experiment_type']}_{data['experiment_id']}.json"
     out_path.parent.mkdir(exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(analysis, f, indent=2, ensure_ascii=False)
 
-    _print_report("DIVERSITY EXPERIMENT", comparisons, list(results_by_level.keys()))
+    _print_report(title, comparisons, conditions)
     return analysis
 
 
-def _analyze_group_size(data):
-    results_by_size = defaultdict(list)
+def _analyze_combined(data):
+    results_by_cell = defaultdict(list)
     for session in data["results"]:
         metrics = compute_all_metrics(session)
         if "llm_judge" in session:
             metrics.update(session["llm_judge"])
-        results_by_size[str(session["group_size"])].append(metrics)
+        cell_key = f"{session['conviviality_level']}_n{session['group_size']}"
+        results_by_cell[cell_key].append(metrics)
 
-    comparisons = _build_comparisons(results_by_size)
+    comparisons = _build_comparisons(results_by_cell)
+
     analysis = {
-        "experiment_type": "group_size",
+        "experiment_type": "combined",
         "experiment_id": data["experiment_id"],
         "comparisons": comparisons,
     }
 
-    out_path = Path("results") / f"analysis_group_size_{data['experiment_id']}.json"
+    out_path = Path("results") / f"analysis_combined_{data['experiment_id']}.json"
     out_path.parent.mkdir(exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(analysis, f, indent=2, ensure_ascii=False)
 
-    _print_report("GROUP SIZE EXPERIMENT", comparisons,
-                  sorted(results_by_size.keys(), key=lambda x: int(x) if x.isdigit() else x))
+    conditions = sorted(results_by_cell.keys())
+    _print_report("COMBINED EXPERIMENT (Conviviality x Group Size)", comparisons, conditions)
     return analysis
 
 
