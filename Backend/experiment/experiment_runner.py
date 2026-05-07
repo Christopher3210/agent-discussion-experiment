@@ -12,26 +12,53 @@ from llm.cloud_model_manager import CloudModelManager
 from controller.dialogue_controller import DialogueController
 from experiment.llm_judge import judge_session
 
+# Disciplinary classification based on Biglan (1973) taxonomy:
+#   Hard/Soft axis: empirical-quantitative vs interpretive-qualitative
+#   Pure/Applied axis: theory-driven vs practice-driven
+#
+# Hard-Pure:    Physicist, Biologist (natural sciences, empirical laws)
+# Hard-Applied: Engineer (technical problem-solving, design constraints)
+# Soft-Pure:    Ethicist, Sociologist, Psychologist (interpretive, theory-oriented)
+# Soft-Applied: Economist, Political Scientist (policy, institutional design)
+#
+# Low diversity  = agents from the SAME quadrant
+# Medium diversity = agents from ADJACENT quadrants (one axis differs)
+# High diversity = agents from OPPOSITE quadrants (both axes differ)
+
+DISCIPLINE_CATEGORY = {
+    "Physicist":           "hard-pure",
+    "Biologist":           "hard-pure",
+    "Engineer":            "hard-applied",
+    "Ethicist":            "soft-pure",
+    "Sociologist":         "soft-pure",
+    "Psychologist":        "soft-pure",
+    "Economist":           "soft-applied",
+    "Political Scientist": "soft-applied",
+}
+
 DIVERSITY_CONFIGS = {
     "low": {
-        "description": "Agents from similar disciplinary backgrounds",
+        "description": "Same quadrant (Biglan taxonomy)",
         "groups": [
-            ["Physicist", "Engineer", "Biologist"],
-            ["Economist", "Political Scientist", "Sociologist"],
+            ["Physicist", "Biologist", "Engineer"],           # hard cluster
+            ["Ethicist", "Sociologist", "Psychologist"],      # soft-pure cluster
+            ["Economist", "Political Scientist", "Engineer"],  # applied cluster
         ],
     },
     "medium": {
-        "description": "Agents from moderately different disciplines",
+        "description": "Adjacent quadrants (one axis differs)",
         "groups": [
-            ["Physicist", "Economist", "Psychologist"],
-            ["Engineer", "Sociologist", "Biologist"],
+            ["Physicist", "Economist", "Biologist"],           # hard-pure + soft-applied
+            ["Engineer", "Psychologist", "Ethicist"],          # hard-applied + soft-pure
+            ["Sociologist", "Economist", "Biologist"],         # soft + hard mix
         ],
     },
     "high": {
-        "description": "Agents from maximally different disciplines",
+        "description": "Opposite quadrants (both axes differ)",
         "groups": [
-            ["Physicist", "Ethicist", "Sociologist"],
-            ["Engineer", "Psychologist", "Political Scientist"],
+            ["Physicist", "Ethicist", "Political Scientist"],  # hard-pure + soft-pure + soft-applied
+            ["Engineer", "Sociologist", "Economist"],          # hard-applied + soft-pure + soft-applied
+            ["Biologist", "Psychologist", "Political Scientist"],  # hard-pure + soft-pure + soft-applied
         ],
     },
 }
