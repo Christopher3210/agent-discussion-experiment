@@ -37,8 +37,8 @@ def plot_conviviality_comparison(result_path, output_dir="figures"):
         ("type_token_ratio", "Lexical Diversity (TTR)", "Ratio"),
         ("repetition_rate", "Repetition Rate", "Rate"),
         ("disagreement_rate", "Disagreement Rate", "Rate"),
-        ("argument_depth", "Argument Depth (LLM)", "Score (1-10)"),
-        ("engagement_quality", "Engagement Quality (LLM)", "Score (1-10)"),
+        ("argument_depth", "Argument Depth (LLM)", "Score (1-5)"),
+        ("engagement_quality", "Engagement Quality (LLM)", "Score (1-5)"),
     ]
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
@@ -92,8 +92,8 @@ def plot_group_size_comparison(result_path, output_dir="figures"):
         ("type_token_ratio", "Lexical Diversity (TTR)", "Ratio"),
         ("repetition_rate", "Repetition Rate", "Rate"),
         ("self_repetition_rate", "Self-Repetition Rate", "Rate"),
-        ("argument_depth", "Argument Depth (LLM)", "Score (1-10)"),
-        ("perspective_diversity", "Perspective Diversity (LLM)", "Score (1-10)"),
+        ("argument_depth", "Argument Depth (LLM)", "Score (1-5)"),
+        ("perspective_diversity", "Perspective Diversity (LLM)", "Score (1-5)"),
     ]
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
